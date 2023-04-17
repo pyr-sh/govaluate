@@ -31,7 +31,6 @@ func parseTokens(
 	for stream.canRead() {
 
 		token, err, found = readToken(stream, state, functions, opts)
-		fmt.Println("  => token:", token.Value, reflect.TypeOf(token.Value))
 		if err != nil {
 			return ret, err
 		}

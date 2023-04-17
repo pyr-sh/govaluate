@@ -290,7 +290,6 @@ func makeParameterStage(parameterName string) evaluationOperator {
 		if err != nil {
 			return nil, err
 		}
-		fmt.Println("GET 1")
 		return value, nil
 	}
 }
@@ -372,7 +371,6 @@ func makeAccessorStage(pair []string) evaluationOperator {
 		if err != nil {
 			return nil, err
 		}
-		fmt.Println("GET 2")
 
 		// while this library generally tries to handle panic-inducing cases on its own,
 		// accessors are a sticky case which have a lot of possible ways to fail.
@@ -471,11 +469,7 @@ func makeAccessorStage(pair []string) evaluationOperator {
 			return nil, errors.New("Method call '" + pair[0] + "." + pair[1] + "' did not return either one value, or a value and an error. Cannot interpret meaning.")
 		}
 
-		fmt.Println("------------")
-		fmt.Println("BEFORE:", reflect.TypeOf(value))
 		value = castToFloat64(value)
-		fmt.Println("AFTER:", reflect.TypeOf(value))
-		fmt.Println("------------")
 		return value, nil
 	}
 }
