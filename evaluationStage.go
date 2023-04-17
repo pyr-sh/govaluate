@@ -7,6 +7,8 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+
+	"github.com/shopspring/decimal"
 )
 
 const (
@@ -93,26 +95,67 @@ func addStage(left interface{}, right interface{}, parameters Parameters) (inter
 		return fmt.Sprintf("%v%v", left, right), nil
 	}
 
+	if a, ok := left.(decimal.Decimal); ok {
+		if b, ok := right.(decimal.Decimal); ok {
+			return a.Add(b), nil
+		}
+	}
+
 	return left.(float64) + right.(float64), nil
 }
 func subtractStage(left interface{}, right interface{}, parameters Parameters) (interface{}, error) {
+	if a, ok := left.(decimal.Decimal); ok {
+		if b, ok := right.(decimal.Decimal); ok {
+			return a.Sub(b), nil
+		}
+	}
+
 	return left.(float64) - right.(float64), nil
 }
 func multiplyStage(left interface{}, right interface{}, parameters Parameters) (interface{}, error) {
+	if a, ok := left.(decimal.Decimal); ok {
+		if b, ok := right.(decimal.Decimal); ok {
+			return a.Mul(b), nil
+		}
+	}
+
 	return left.(float64) * right.(float64), nil
 }
 func divideStage(left interface{}, right interface{}, parameters Parameters) (interface{}, error) {
+	if a, ok := left.(decimal.Decimal); ok {
+		if b, ok := right.(decimal.Decimal); ok {
+			return a.Div(b), nil
+		}
+	}
+
 	return left.(float64) / right.(float64), nil
 }
 func exponentStage(left interface{}, right interface{}, parameters Parameters) (interface{}, error) {
+	if a, ok := left.(decimal.Decimal); ok {
+		if b, ok := right.(decimal.Decimal); ok {
+			return a.Pow(b), nil
+		}
+	}
+
 	return math.Pow(left.(float64), right.(float64)), nil
 }
 func modulusStage(left interface{}, right interface{}, parameters Parameters) (interface{}, error) {
+	if a, ok := left.(decimal.Decimal); ok {
+		if b, ok := right.(decimal.Decimal); ok {
+			return a.Mod(b), nil
+		}
+	}
+
 	return math.Mod(left.(float64), right.(float64)), nil
 }
 func gteStage(left interface{}, right interface{}, parameters Parameters) (interface{}, error) {
 	if isString(left) && isString(right) {
 		return boolIface(left.(string) >= right.(string)), nil
+	}
+	if a, ok := left.(decimal.Decimal); ok {
+		if b, ok := right.(decimal.Decimal); ok {
+			return a.GreaterThanOrEqual(b), nil
+		}
 	}
 	return boolIface(left.(float64) >= right.(float64)), nil
 }
@@ -120,11 +163,21 @@ func gtStage(left interface{}, right interface{}, parameters Parameters) (interf
 	if isString(left) && isString(right) {
 		return boolIface(left.(string) > right.(string)), nil
 	}
+	if a, ok := left.(decimal.Decimal); ok {
+		if b, ok := right.(decimal.Decimal); ok {
+			return a.GreaterThan(b), nil
+		}
+	}
 	return boolIface(left.(float64) > right.(float64)), nil
 }
 func lteStage(left interface{}, right interface{}, parameters Parameters) (interface{}, error) {
 	if isString(left) && isString(right) {
 		return boolIface(left.(string) <= right.(string)), nil
+	}
+	if a, ok := left.(decimal.Decimal); ok {
+		if b, ok := right.(decimal.Decimal); ok {
+			return a.LessThanOrEqual(b), nil
+		}
 	}
 	return boolIface(left.(float64) <= right.(float64)), nil
 }
@@ -132,12 +185,27 @@ func ltStage(left interface{}, right interface{}, parameters Parameters) (interf
 	if isString(left) && isString(right) {
 		return boolIface(left.(string) < right.(string)), nil
 	}
+	if a, ok := left.(decimal.Decimal); ok {
+		if b, ok := right.(decimal.Decimal); ok {
+			return a.LessThan(b), nil
+		}
+	}
 	return boolIface(left.(float64) < right.(float64)), nil
 }
 func equalStage(left interface{}, right interface{}, parameters Parameters) (interface{}, error) {
+	if a, ok := left.(decimal.Decimal); ok {
+		if b, ok := right.(decimal.Decimal); ok {
+			return a.Equal(b), nil
+		}
+	}
 	return boolIface(reflect.DeepEqual(left, right)), nil
 }
 func notEqualStage(left interface{}, right interface{}, parameters Parameters) (interface{}, error) {
+	if a, ok := left.(decimal.Decimal); ok {
+		if b, ok := right.(decimal.Decimal); ok {
+			return !a.Equal(b), nil
+		}
+	}
 	return boolIface(!reflect.DeepEqual(left, right)), nil
 }
 func andStage(left interface{}, right interface{}, parameters Parameters) (interface{}, error) {
@@ -147,6 +215,9 @@ func orStage(left interface{}, right interface{}, parameters Parameters) (interf
 	return boolIface(left.(bool) || right.(bool)), nil
 }
 func negateStage(left interface{}, right interface{}, parameters Parameters) (interface{}, error) {
+	if a, ok := right.(decimal.Decimal); ok {
+		return a.Neg(), nil
+	}
 	return -right.(float64), nil
 }
 func invertStage(left interface{}, right interface{}, parameters Parameters) (interface{}, error) {
@@ -219,7 +290,7 @@ func makeParameterStage(parameterName string) evaluationOperator {
 		if err != nil {
 			return nil, err
 		}
-
+		fmt.Println("GET 1")
 		return value, nil
 	}
 }
@@ -301,6 +372,7 @@ func makeAccessorStage(pair []string) evaluationOperator {
 		if err != nil {
 			return nil, err
 		}
+		fmt.Println("GET 2")
 
 		// while this library generally tries to handle panic-inducing cases on its own,
 		// accessors are a sticky case which have a lot of possible ways to fail.
@@ -399,7 +471,11 @@ func makeAccessorStage(pair []string) evaluationOperator {
 			return nil, errors.New("Method call '" + pair[0] + "." + pair[1] + "' did not return either one value, or a value and an error. Cannot interpret meaning.")
 		}
 
+		fmt.Println("------------")
+		fmt.Println("BEFORE:", reflect.TypeOf(value))
 		value = castToFloat64(value)
+		fmt.Println("AFTER:", reflect.TypeOf(value))
+		fmt.Println("------------")
 		return value, nil
 	}
 }
@@ -466,13 +542,21 @@ func isFloat64(value interface{}) bool {
 	return false
 }
 
+func isDecimal(value any) bool {
+	_, ok := value.(decimal.Decimal)
+	return ok
+}
+
 /*
-	Addition usually means between numbers, but can also mean string concat.
-	String concat needs one (or both) of the sides to be a string.
+Addition usually means between numbers, but can also mean string concat.
+String concat needs one (or both) of the sides to be a string.
 */
 func additionTypeCheck(left interface{}, right interface{}) bool {
 
 	if isFloat64(left) && isFloat64(right) {
+		return true
+	}
+	if isDecimal(left) && isDecimal(right) {
 		return true
 	}
 	if !isString(left) && !isString(right) {
@@ -481,13 +565,37 @@ func additionTypeCheck(left interface{}, right interface{}) bool {
 	return true
 }
 
+func floatOrDecimalBothSidesTypeCheck(left interface{}, right interface{}) bool {
+
+	if isFloat64(left) && isFloat64(right) {
+		return true
+	}
+	if isDecimal(left) && isDecimal(right) {
+		return true
+	}
+	return true
+}
+
+func floatOrDecimalTypeCheck(v interface{}) bool {
+	if isFloat64(v) {
+		return true
+	}
+	if isDecimal(v) {
+		return true
+	}
+	return true
+}
+
 /*
-	Comparison can either be between numbers, or lexicographic between two strings,
-	but never between the two.
+Comparison can either be between numbers, or lexicographic between two strings,
+but never between the two.
 */
 func comparatorTypeCheck(left interface{}, right interface{}) bool {
 
 	if isFloat64(left) && isFloat64(right) {
+		return true
+	}
+	if isDecimal(left) && isDecimal(right) {
 		return true
 	}
 	if isString(left) && isString(right) {
@@ -505,8 +613,8 @@ func isArray(value interface{}) bool {
 }
 
 /*
-	Converting a boolean to an interface{} requires an allocation.
-	We can use interned bools to avoid this cost.
+Converting a boolean to an interface{} requires an allocation.
+We can use interned bools to avoid this cost.
 */
 func boolIface(b bool) interface{} {
 	if b {
