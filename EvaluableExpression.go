@@ -130,7 +130,9 @@ func newEvaluableExpressionWithFunctions(
 }
 
 type EvaluableExpressionOptions struct {
-	UseDecimalForMaths bool
+	// If true, parses numerics to github.com/shopspring/decimal.Decimal rather than float64
+	// so that we can reliably perform computations on floating point numbers.
+	ParseNumericValuesToDecimal bool
 }
 
 func NewEvaluableExpressionWithOptions(

@@ -111,7 +111,7 @@ func readToken(
 
 			tokenString = readTokenUntilFalse(stream, isNumeric)
 
-			if opts != nil && opts.UseDecimalForMaths {
+			if opts != nil && opts.ParseNumericValuesToDecimal {
 				tokenValue, err = decimal.NewFromString(tokenString)
 				if err != nil {
 					return ExpressionToken{}, err, false
