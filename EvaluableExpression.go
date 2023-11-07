@@ -11,8 +11,8 @@ const shortCircuitHolder int = -1
 var DUMMY_PARAMETERS = MapParameters(map[string]interface{}{})
 
 /*
-	EvaluableExpression represents a set of ExpressionTokens which, taken together,
-	are an expression that can be evaluated down into a single value.
+EvaluableExpression represents a set of ExpressionTokens which, taken together,
+are an expression that can be evaluated down into a single value.
 */
 type EvaluableExpression struct {
 
@@ -38,18 +38,17 @@ type EvaluableExpression struct {
 }
 
 /*
-	Parses a new EvaluableExpression from the given [expression] string.
-	Returns an error if the given expression has invalid syntax.
+Parses a new EvaluableExpression from the given [expression] string.
+Returns an error if the given expression has invalid syntax.
 */
 func NewEvaluableExpression(expression string) (*EvaluableExpression, error) {
-
 	functions := make(map[string]ExpressionFunction)
 	return NewEvaluableExpressionWithFunctions(expression, functions)
 }
 
 /*
-	Similar to [NewEvaluableExpression], except that instead of a string, an already-tokenized expression is given.
-	This is useful in cases where you may be generating an expression automatically, or using some other parser (e.g., to parse from a query language)
+Similar to [NewEvaluableExpression], except that instead of a string, an already-tokenized expression is given.
+This is useful in cases where you may be generating an expression automatically, or using some other parser (e.g., to parse from a query language)
 */
 func NewEvaluableExpressionFromTokens(tokens []ExpressionToken) (*EvaluableExpression, error) {
 
@@ -84,11 +83,16 @@ func NewEvaluableExpressionFromTokens(tokens []ExpressionToken) (*EvaluableExpre
 }
 
 /*
-	Similar to [NewEvaluableExpression], except enables the use of user-defined functions.
-	Functions passed into this will be available to the expression.
+Similar to [NewEvaluableExpression], except enables the use of user-defined functions.
+Functions passed into this will be available to the expression.
 */
 func NewEvaluableExpressionWithFunctions(expression string, functions map[string]ExpressionFunction) (*EvaluableExpression, error) {
+	return newEvaluableExpressionWithFunctions(expression, functions, nil)
+}
 
+func newEvaluableExpressionWithFunctions(
+	expression string, functions map[string]ExpressionFunction, opts *EvaluableExpressionOptions,
+) (*EvaluableExpression, error) {
 	var ret *EvaluableExpression
 	var err error
 
@@ -96,7 +100,7 @@ func NewEvaluableExpressionWithFunctions(expression string, functions map[string
 	ret.QueryDateFormat = isoDateFormat
 	ret.inputExpression = expression
 
-	ret.tokens, err = parseTokens(expression, functions)
+	ret.tokens, err = parseTokens(expression, functions, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -125,8 +129,21 @@ func NewEvaluableExpressionWithFunctions(expression string, functions map[string
 	return ret, nil
 }
 
+type EvaluableExpressionOptions struct {
+	// If true, parses numerics to github.com/shopspring/decimal.Decimal rather than float64
+	// so that we can reliably perform computations on floating point numbers.
+	ParseNumericValuesToDecimal bool
+}
+
+func NewEvaluableExpressionWithOptions(
+	expression string, opts *EvaluableExpressionOptions,
+) (*EvaluableExpression, error) {
+	functions := make(map[string]ExpressionFunction)
+	return newEvaluableExpressionWithFunctions(expression, functions, opts)
+}
+
 /*
-	Same as `Eval`, but automatically wraps a map of parameters into a `govalute.Parameters` structure.
+Same as `Eval`, but automatically wraps a map of parameters into a `govalute.Parameters` structure.
 */
 func (this EvaluableExpression) Evaluate(parameters map[string]interface{}) (interface{}, error) {
 
@@ -138,15 +155,15 @@ func (this EvaluableExpression) Evaluate(parameters map[string]interface{}) (int
 }
 
 /*
-	Runs the entire expression using the given [parameters].
-	e.g., If the expression contains a reference to the variable "foo", it will be taken from `parameters.Get("foo")`.
+Runs the entire expression using the given [parameters].
+e.g., If the expression contains a reference to the variable "foo", it will be taken from `parameters.Get("foo")`.
 
-	This function returns errors if the combination of expression and parameters cannot be run,
-	such as if a variable in the expression is not present in [parameters].
+This function returns errors if the combination of expression and parameters cannot be run,
+such as if a variable in the expression is not present in [parameters].
 
-	In all non-error circumstances, this returns the single value result of the expression and parameters given.
-	e.g., if the expression is "1 + 1", this will return 2.0.
-	e.g., if the expression is "foo + 1" and parameters contains "foo" = 2, this will return 3.0
+In all non-error circumstances, this returns the single value result of the expression and parameters given.
+e.g., if the expression is "1 + 1", this will return 2.0.
+e.g., if the expression is "foo + 1" and parameters contains "foo" = 2, this will return 3.0
 */
 func (this EvaluableExpression) Eval(parameters Parameters) (interface{}, error) {
 
@@ -247,7 +264,7 @@ func typeCheck(check stageTypeCheck, value interface{}, symbol OperatorSymbol, f
 }
 
 /*
-	Returns an array representing the ExpressionTokens that make up this expression.
+Returns an array representing the ExpressionTokens that make up this expression.
 */
 func (this EvaluableExpression) Tokens() []ExpressionToken {
 
@@ -255,7 +272,7 @@ func (this EvaluableExpression) Tokens() []ExpressionToken {
 }
 
 /*
-	Returns the original expression used to create this EvaluableExpression.
+Returns the original expression used to create this EvaluableExpression.
 */
 func (this EvaluableExpression) String() string {
 
@@ -263,7 +280,7 @@ func (this EvaluableExpression) String() string {
 }
 
 /*
-	Returns an array representing the variables contained in this EvaluableExpression.
+Returns an array representing the variables contained in this EvaluableExpression.
 */
 func (this EvaluableExpression) Vars() []string {
 	var varlist []string
